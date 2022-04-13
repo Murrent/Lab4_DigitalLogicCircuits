@@ -2,27 +2,27 @@
 #include <fcntl.h>
 
 const unsigned int length = 16;
-unsigned char buffer[16] = {0};
-unsigned int position = 0;
-
-const char *source = "test.txt";
+unsigned char readBuffer[16] = {0};
+unsigned int readPosition = 0;
 int sourceFile;
-const char *dest = "destination.txt";
+
+unsigned char writeBuffer[16] = {0};
+unsigned int writePosition = 0;
 int destFile;
 
 unsigned int buf_in() {
-    unsigned int index = position % length;
+    unsigned int index = readPosition % length;
     if (index == 0)
-        read(sourceFile, buffer, length);
-    if (position == filelength(sourceFile))
+        read(sourceFile, readBuffer, length);
+    if (readPosition == filelength(sourceFile))
         return EOF;
-    return buffer[index];
+    return readBuffer[index];
 }
 
 void readAndPrint(unsigned int readLength) {
     printf("Read:\n");
     for (int i = 0; i < readLength; i++) {
-        position = i;
+        readPosition = i;
         unsigned int byte = buf_in();
         printf("%c", byte);
         if (byte == EOF) break;
@@ -31,40 +31,44 @@ void readAndPrint(unsigned int readLength) {
 }
 
 void buf_flush() {
-    unsigned int count = position % length;
+    unsigned int count = writePosition % length;
     if (count == 0)
         count = length;
-    printf("Writing %s %d %d \n", buffer, position, count);
-    write(destFile, buffer, count);
+    else
+        count++;
+    write(destFile, writeBuffer, count);
 }
 
 void buf_out(unsigned char byte) {
-    unsigned int index = position % length;
-    printf("buf_out %d\n", index);
-    if (index == 0 && position != 0)
+    unsigned int index = writePosition % length;
+    if (index == 0 && writePosition != 0)
         buf_flush();
-    buffer[index] = byte;
+    writeBuffer[index] = byte;
 }
 
 void copy(unsigned int readLength) {
     printf("Read:\n");
     for (int i = 0; i < readLength; i++) {
-        position = i;
+        readPosition = i;
         unsigned int byte = buf_in();
-        printf("bytes %s\n", buffer);
         if (byte == EOF) break;
+        writePosition = readPosition;
         buf_out(byte);
     }
     buf_flush();
     printf("\n");
 }
 
-int main() {
-    sourceFile = open(source, O_RDONLY);
-    destFile = open(dest, O_WRONLY);
-    copy(100);
 
-    close(destFile);
-    close(sourceFile);
+
+int main(int argc, char **argv) {
+    if (argc == 3) {
+        sourceFile = open(argv[1], O_RDONLY);
+        destFile = open(argv[2], O_WRONLY);
+        copy(256);
+
+        close(destFile);
+        close(sourceFile);
+    }
     return 0;
 }
