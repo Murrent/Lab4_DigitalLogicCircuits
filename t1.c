@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <fcntl.h>
-#include <time.h>
 
 const unsigned int length = 16;
 
@@ -8,70 +7,34 @@ unsigned char readBuffer[16] = {0};
 unsigned int readPosition = 0;
 int sourceFile;
 
-unsigned char writeBuffer[16] = {0};
-unsigned int writePosition = 0;
-int destFile;
-
-unsigned int buf_in() {
-    unsigned int index = readPosition % length;
-    if (index == 0)
+// Returns the next char from the file using the buffer (type int, so we can read the EOF value)
+int buf_in() {
+    unsigned int index = readPosition % length; // Buffer index ranging from 0-15
+    if (index == 0) // We always read new data into the buffer at index 0
         read(sourceFile, readBuffer, length);
-    if (readPosition == filelength(sourceFile))
+    if (readPosition == filelength(sourceFile)) // Return EOF (-1) if we reach the end
         return EOF;
-    return readBuffer[index];
+    return readBuffer[index]; // Simply return the byte at the index
 }
 
+// Reads and prints up to "readLength" bytes a file, returns early if file is smaller
 void readAndPrint(unsigned int readLength) {
     printf("Read:\n");
     for (int i = 0; i < readLength; i++) {
         readPosition = i;
-        unsigned int byte = buf_in();
+        int byte = buf_in(); // Getting the byte value
         printf("%c", byte);
-        if (byte == EOF) break;
+        if (byte == EOF) break; // Exit loop early if end is reached
     }
     printf("\n");
 }
 
-void buf_flush() {
-    unsigned int count = writePosition % length;
-    if (count == 0)
-        count = length;
-    else
-        count++;
-    write(destFile, writeBuffer, count);
-}
-
-void buf_out(unsigned char byte) {
-    unsigned int index = writePosition % length;
-    if (index == 0 && writePosition != 0)
-        buf_flush();
-    writeBuffer[index] = byte;
-}
-
-void copy(unsigned int readLength) {
-    for (int i = 0; i < readLength; i++) {
-        readPosition = i;
-        unsigned int byte = buf_in();
-        if (byte == EOF) break;
-        writePosition = readPosition;
-        buf_out(byte);
-    }
-    buf_flush();
-}
-
-
 int main(int argc, char **argv) {
-    if (argc == 3) {
-        clock_t t = clock();
+    if (argc == 2) {
+        // Opening file in read only mode
         sourceFile = open(argv[1], O_RDONLY);
-        destFile = open(argv[2], O_WRONLY);
-        copy(2560);
-
-        close(destFile);
+        readAndPrint(256000);
         close(sourceFile);
-        clock_t et = clock();
-        float difference = ((float)(et - t) / CLOCKS_PER_SEC) * 1000;
-        printf("Execution time: %f\n", difference);
     }
     return 0;
 }
